@@ -19,6 +19,7 @@
 
 #define DEBUG
 #define energy(b) (2*(b)-2.0*(L*L))
+//#define magnet(b) (2*(b)-2.0*(L*L))
 
 int **spin;     // Массив спинов
 int L;          // Размер решетки
@@ -31,6 +32,15 @@ int main(int argc, char *argv[])  {
     double *g;              /* Массив плотности состояний
                              * Изначально каждый элемент массива принимается равным единице
                              */
+
+	double *m;              /* Массив для намагниченности
+                             * Изначально каждый элемент массива принимается равным нулю
+                             */
+	
+	double *m2;				/* Массив для квадрата намагниченности
+                             * Изначально каждый элемент массива принимается равным нулю
+                             */
+
     int b, b_new, top_b;    // Текущий энергетический уровень и последующий, top_b - предельный энергетический уровень
     double f, f_min, ln_f;  /* "f" - начальный множитель для энергетических уровней, 
                              * "f_min" - минимальное значение множителя
@@ -48,7 +58,7 @@ int main(int argc, char *argv[])  {
     double seed;
 
     int it_count;
-
+	
     std::stringstream ss;
     std::ofstream test_g_f, graph_g_f, graph_sh_g;
 
@@ -79,6 +89,8 @@ int main(int argc, char *argv[])  {
     };
     hist = new int [4*L*L];
     g = new double [4*L*L];
+    m = new double [4*L*L];
+    m2 = new double [4*L*L];
     
     for(int i = 0; i < L; i++)    {
         for(int j = 0; j < L; j++)    {
@@ -86,11 +98,19 @@ int main(int argc, char *argv[])  {
         }
     }
 
-    for(int i = 0; i < 2*L*L*0.75; i++)    {
+    for(int i = 0; i < 2*L*L; i++)    {
         g[i] = 1.0;
     }
 
-    for(int i = 0; i < 2*L*L*0.75; i++)    {
+	for(int i = 0; i < 2*L*L; i++)    {
+        m[i] = 0.0;
+    }
+
+	for(int i = 0; i < 2*L*L; i++)    {
+        m2[i] = 0.0;
+    }
+
+    for(int i = 0; i < 2*L*L; i++)    {
         hist[i] = 1.0;
     }
 
@@ -149,7 +169,11 @@ int main(int argc, char *argv[])  {
 
                     }
                     
-                    g[b] += ln_f;   // Увеличиваем текущий энергетический уровень на логарифм "f"
+                    g[b] += ln_f;   	  // Увеличиваем текущий энергетический уровень на логарифм "f"
+					m[b] += spin[ci][cj]; // Увеличиваем значение намагниченности для данного энергетического уровня
+
+					m2[b] += spin[ci][cj]*spin[ci][cj];   // Квадрат намагниченности для расчета восприимчивости
+
                     hist[b] += 1;
                     n++;
                 }
@@ -201,6 +225,26 @@ int main(int argc, char *argv[])  {
         for(int i = 1; i <= top_b; i++) {
             g[i] -= g[0]; 
         }
+		
+		double m_min  = m[0];
+		double m2_min = m2[0];
+
+		for(int i = 0; i < top_b; i++)	{
+		
+			if(m[i] < m_min) m_min = m[i];
+
+			if(m2[i] < m2_min) m2_min = m2[i];
+
+		}
+
+		for(int i = 0; i < top_b; i++)	{
+
+			m[i]  -= m_min;
+			m2[i] -= m2_min;
+			
+			std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
+
+		}
 
         // for (int i = 0; i < top_b; ++i)
         // {
@@ -271,12 +315,14 @@ int main(int argc, char *argv[])  {
                     "/graphs/{1..20}.jpg animate-DoS-L=" << L << ".gif\n";
     graph_sh_g.close();
 
-    double EE, EE2, GE, Ut, Ft, St, Ct, lambdatemp, lambda;
+    double EE, EE2, GE, Ut, Ft, St, Ct, Xt, MM, MM2, MM_quad, lambdatemp, lambda;
 
-    std::ofstream out_f_td, out_f_ds, plot_f, script_f, time_f;
+	// out_f_mm_mm2 - файл для вывода намагниченности и восприимчивости
+    std::ofstream out_f_td, out_f_ds, out_f_mm_mm2, plot_f, script_f, time_f;
 
     char * filename_out_td = new char [100];
     char * filename_out_ds = new char [100];
+    char * filename_out_f_mm_mm2 = new char [100];
 
     ss.str("");
     ss << "results/TermodinamicalStat_L=" << L << ".dat";
@@ -296,15 +342,23 @@ int main(int argc, char *argv[])  {
     if(!out_f_ds) std::cout << "Cannot open " << filename_out_ds << ".Check permissions or free space";
     out_f_ds << "i\tE(i)\tg[i]\thist[i]\n";
 
+    ss.str("");
+	ss << "results/MagnetStats_L=" << L << ".dat";
+	strcpy(filename_out_f_mm_mm2, ss.str().c_str());
+
+	out_f_mm_mm2.open(filename_out_f_mm_mm2);
+
     for(double T = 0.01; T <= 8; T += 0.01)  {
 
         EE = 0;
         EE2 = 0;
         GE = 0;
+		MM = 0;
+		MM2 = 0;
 
         lambda = 0;
         lambdatemp = 0;
-
+		
         for(int i = 0; i < top_b; i++)  {
             if((i!=0) && i!=L*L-1 && hist[i]!=0)    {
                 lambdatemp = g[i] - energy(i)/T;
@@ -314,16 +368,30 @@ int main(int argc, char *argv[])  {
 
         for(int i = 0; i < top_b; i++) {
             if((i!=1) && (i!=L*L-1) && (hist[i]!=0))    {
-                EE += energy(i)*exp(g[i]-(energy(i))/T-lambda);
+
+                EE  += energy(i)*exp(g[i]-(energy(i))/T-lambda);
                 EE2 += energy(i)*energy(i)*exp(g[i]-(energy(i))/T-lambda);
-                GE += exp(g[i]-energy(i)/T-lambda);
+                GE  += exp(g[i]-energy(i)/T-lambda);
+				
+				MM  += m[i]*exp(g[i]-(energy(i))/T-lambda);
+//				MM2 += m2[i]*exp(g[i]-(energy(i))/T-lambda);
+
             }
         }
+
+		MM = MM/GE;
+//		MM2	= MM2/GE;	
+
+//		Xt = (MM*MM - MM2)/T;
 
         Ut = EE/GE;
         Ft = -T*lambda-(T)*log(GE);
         St = (Ut-Ft)/T;
         Ct = ((EE2/GE)-Ut*Ut)/(T*T);
+		
+//		std::cout << MM << std::endl;
+//		out_f_mm_mm2 << std::setprecision(3) << (float)T << std::setprecision(6) << "\t" << MM/(L*L) << "\t" << Xt/(L*L) << std::endl; 
+		out_f_mm_mm2 << std::setprecision(3) << (float)T << std::setprecision(6) << "\t" << MM/(L*L) << std::endl; 
 
         // if((Ut==Ut)==true&&(Ft==Ft)==true&&(St==St)==true&&(Ct==Ct)==true) // Не пишем NaN 
         out_f_td << std::fixed << std::setprecision(4) << T << "\t" << Ut/(L*L) << "\t" << Ft/(L*L) << "\t" << St/(L*L) << "\t" << Ct/(L*L) << "\n";
@@ -335,6 +403,7 @@ int main(int argc, char *argv[])  {
             out_f_ds << std::fixed << std::setprecision(6) << i << "\t" << energy(i) << "\t" << g[i] << "\t" << hist[i] << "\n";
         }
     }
+	
 
     ss.str("");
     ss << "temp/TermodinamicalStat_L=" << L;
@@ -486,9 +555,11 @@ int main(int argc, char *argv[])  {
 
     out_f_td.close();
     out_f_ds.close();
+    out_f_mm_mm2.close();
 
     delete [] filename_out_td;
     delete [] filename_out_ds;
+	delete [] filename_out_f_mm_mm2;
 
     for(int i = 0; i < L; i++)  {
         delete spin[i];
@@ -496,6 +567,8 @@ int main(int argc, char *argv[])  {
     delete [] spin;
     delete [] hist;
     delete [] g;
+    delete [] m;
+    delete [] m2;
 }
 
 
