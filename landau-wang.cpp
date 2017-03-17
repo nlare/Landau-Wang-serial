@@ -71,7 +71,7 @@ int main(int argc, char *argv[])  {
 
     CRandomMersenne Mersenne(seed);
 
-    L = 16;
+    L = 32;
     f = 2.7182818284;  // В работе Ландау-Ванга было указано значение "f" равное экспоненте 
     f_min = 1.000001;  // Данная переменная должна быть около единицы
     min_steps = 10000;
@@ -225,26 +225,6 @@ int main(int argc, char *argv[])  {
         for(int i = 1; i <= top_b; i++) {
             g[i] -= g[0]; 
         }
-		
-		double m_min  = m[0];
-		double m2_min = m2[0];
-
-		for(int i = 0; i < top_b; i++)	{
-		
-			if(m[i] < m_min) m_min = m[i];
-
-			if(m2[i] < m2_min) m2_min = m2[i];
-
-		}
-
-		for(int i = 0; i < top_b; i++)	{
-
-			m[i]  -= m_min;
-			m2[i] -= m2_min;
-			
-			std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
-
-		}
 
         // for (int i = 0; i < top_b; ++i)
         // {
@@ -315,9 +295,9 @@ int main(int argc, char *argv[])  {
                     "/graphs/{1..20}.jpg animate-DoS-L=" << L << ".gif\n";
     graph_sh_g.close();
 
-    double EE, EE2, GE, Ut, Ft, St, Ct, Xt, MM, MM2, MM_quad, lambdatemp, lambda;
+    double EE, EE2, GE, Ut, Ft, St, Ct, Xt, MM, MM2, Mt, lambdatemp, lambda;
 
-	// out_f_mm_mm2 - файл для вывода намагниченности и восприимчивости
+    // out_f_mm_mm2 - файл для вывода намагниченности и восприимчивости
     std::ofstream out_f_td, out_f_ds, out_f_mm_mm2, plot_f, script_f, time_f;
 
     char * filename_out_td = new char [100];
@@ -348,6 +328,41 @@ int main(int argc, char *argv[])  {
 
 	out_f_mm_mm2.open(filename_out_f_mm_mm2);
 
+    double m_min = abs(m[0]);
+    double m2_min = abs(m2[0]);
+
+  // //       std::cout << "m[0] = " << m_min << std::endl;
+
+  //       for(int i = 0; i < top_b; i++)  {
+          
+  //         if(hist[i] != 0)  {
+
+  //           m[i] = abs(m[i]);
+
+  //           m2[i] = abs(m2[i]);
+
+  //           if((m[i] > 0) && (m[i] < m_min)) m_min = m[i];
+
+  //           if((m[i] > 0) && (m2[i] < m2_min)) m2_min = m2[i];
+
+  //            // std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
+  //         }
+
+  //       }
+
+  //       for(int i = 0; i < top_b; i++)  {
+
+  //           if(hist[i] != 0)  {
+
+  //             m[i]  -= m_min;
+  //             m2[i] -= m2_min;
+
+  //             // std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
+
+  //           }
+
+  //       }
+
     for(double T = 0.01; T <= 8; T += 0.01)  {
 
         EE = 0;
@@ -374,24 +389,30 @@ int main(int argc, char *argv[])  {
                 GE  += exp(g[i]-energy(i)/T-lambda);
 				
 				MM  += m[i]*exp(g[i]-(energy(i))/T-lambda);
-//				MM2 += m2[i]*exp(g[i]-(energy(i))/T-lambda);
+
+                // MM_mult_MM += m[i]*exp(g[i]-(energy(i))/T-lambda);
+
+				MM2 += m[i]*m[i]*exp(g[i]-(energy(i))/T-lambda);
+
+                // MM2 += m2[i];
 
             }
         }
 
-		MM = MM/GE;
-//		MM2	= MM2/GE;	
+        // MM_mult_MM = MM_mult_MM/GE;
 
-//		Xt = (MM*MM - MM2)/T;
+		// MM2	= MM2/GE;
 
         Ut = EE/GE;
         Ft = -T*lambda-(T)*log(GE);
         St = (Ut-Ft)/T;
         Ct = ((EE2/GE)-Ut*Ut)/(T*T);
+
+        Mt = MM/GE;
+        Xt = ((MM2/GE)-Mt*Mt)/T;
 		
-//		std::cout << MM << std::endl;
-//		out_f_mm_mm2 << std::setprecision(3) << (float)T << std::setprecision(6) << "\t" << MM/(L*L) << "\t" << Xt/(L*L) << std::endl; 
-		out_f_mm_mm2 << std::setprecision(3) << (float)T << std::setprecision(6) << "\t" << MM/(L*L) << std::endl; 
+		out_f_mm_mm2 << std::setprecision(3) << (float)T << std::setprecision(6) << "\t" << Mt/(L*L) << "\t" << Xt/(L*L) << std::endl; 
+		// out_f_mm_mm2 << std::setprecision(3) << (float)T << std::setprecision(6) << "\t" << MM/(L*L) << "\t" << GE << std::endl; 
 
         // if((Ut==Ut)==true&&(Ft==Ft)==true&&(St==St)==true&&(Ct==Ct)==true) // Не пишем NaN 
         out_f_td << std::fixed << std::setprecision(4) << T << "\t" << Ut/(L*L) << "\t" << Ft/(L*L) << "\t" << St/(L*L) << "\t" << Ct/(L*L) << "\n";

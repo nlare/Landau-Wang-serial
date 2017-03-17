@@ -1,0 +1,12 @@
+QtiPlot 0.9.8 template file
+<table>	800	3
+geometry	0	660	445	220	active
+header	1[X]	2[Y]	3[Y]
+ColWidth	100	100	100	
+<com>
+</com>
+ColType	0;0/13	0;0/13	0;0/13
+ReadOnlyColumn	0	0	0
+HiddenColumn	0	0	0
+Comments				
+</table>
