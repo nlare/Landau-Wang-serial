@@ -71,7 +71,7 @@ int main(int argc, char *argv[])  {
 
     CRandomMersenne Mersenne(seed);
 
-    L = 32;
+    L = 16;
     f = 2.7182818284;  // В работе Ландау-Ванга было указано значение "f" равное экспоненте 
     f_min = 1.000001;  // Данная переменная должна быть около единицы
     min_steps = 10000;
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])  {
                     g[b] += ln_f;   	  // Увеличиваем текущий энергетический уровень на логарифм "f"
 					m[b] += spin[ci][cj]; // Увеличиваем значение намагниченности для данного энергетического уровня
 
-					m2[b] += spin[ci][cj]*spin[ci][cj];   // Квадрат намагниченности для расчета восприимчивости
+					// m2[b] += spin[ci][cj]*spin[ci][cj];   // Квадрат намагниченности для расчета восприимчивости
 
                     hist[b] += 1;
                     n++;
@@ -223,7 +223,13 @@ int main(int argc, char *argv[])  {
         }   while(count);
 
         for(int i = 1; i <= top_b; i++) {
+
             g[i] -= g[0]; 
+
+            m[i] = abs(m[i]);
+
+            m2[i] = abs(m2[i]);
+
         }
 
         // for (int i = 0; i < top_b; ++i)
@@ -333,35 +339,35 @@ int main(int argc, char *argv[])  {
 
   // //       std::cout << "m[0] = " << m_min << std::endl;
 
-  //       for(int i = 0; i < top_b; i++)  {
+        for(int i = 0; i < top_b; i++)  {
           
-  //         if(hist[i] != 0)  {
+          if(hist[i] != 0)  {
 
-  //           m[i] = abs(m[i]);
+            m[i] = abs(m[i]);
 
-  //           m2[i] = abs(m2[i]);
+            m2[i] = abs(m2[i]);
 
-  //           if((m[i] > 0) && (m[i] < m_min)) m_min = m[i];
+            if((m[i] > 0) && (m[i] < m_min)) m_min = m[i];
 
-  //           if((m[i] > 0) && (m2[i] < m2_min)) m2_min = m2[i];
+            if((m[i] > 0) && (m2[i] < m2_min)) m2_min = m2[i];
 
-  //            // std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
-  //         }
+             // std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
+          }
 
-  //       }
+        }
 
-  //       for(int i = 0; i < top_b; i++)  {
+        for(int i = 0; i < top_b; i++)  {
 
-  //           if(hist[i] != 0)  {
+            if(hist[i] != 0)  {
 
-  //             m[i]  -= m_min;
-  //             m2[i] -= m2_min;
+              m[i]  -= m_min;
+              m2[i] -= m2_min;
 
   //             // std::cout << "m_min = " << m_min << "; m[" << i << "]=" << m[i] << "; m2[" << i << "]=" << m2[i] << std::endl;
 
-  //           }
+            }
 
-  //       }
+        }
 
     for(double T = 0.01; T <= 8; T += 0.01)  {
 
